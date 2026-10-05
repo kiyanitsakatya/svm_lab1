@@ -1,0 +1,94 @@
+import numpy as np
+
+A = np.array([
+    [10.64, 2.13, -1.47, 0.82],
+    [1.72, 13.25, 1.16, -2.08],
+    [-2.14, 1.36, 11.83, 1.57],
+    [1.25, -1.48, 2.06, 12.74]
+])
+b = np.array([14.36, 18.71, 16.52, 20.18])
+
+#Решение через numpy.linalg.solve
+x_linalg = np.linalg.solve(A, b)
+print("Решение через numpy.linalg.solve:")
+print(f"x = {x_linalg}\n")
+
+
+#Собственный метод Гаусса с выбором ведущего элемента
+def gauss_elimination(A, b):
+    n = len(b)
+    M = np.hstack([A, b.reshape(-1, 1)]).astype(float)
+
+    for i in range(n):
+        max_row = np.argmax(abs(M[i:, i])) + i
+        M[[i, max_row]] = M[[max_row, i]]
+
+        for j in range(i + 1, n):
+            factor = M[j, i] / M[i, i]
+            M[j, i:] -= factor * M[i, i:]
+
+    x = np.zeros(n)
+    for i in range(n - 1, -1, -1):
+        x[i] = (M[i, -1] - np.dot(M[i, i + 1:n], x[i + 1:n])) / M[i, i]
+    return x
+
+
+print("Метод Гаусса с выбором ведущего элемента:")
+print(f"x = {gauss_elimination(A, b)}\n")
+
+
+def prepare_iterative(A, b):
+    n = len(b)
+    B = np.zeros_like(A)
+    c = np.zeros_like(b)
+    for i in range(n):
+        c[i] = b[i] / A[i, i]
+        for j in range(n):
+            if i != j:
+                B[i, j] = -A[i, j] / A[i, i]
+    return B, c
+
+
+B, c = prepare_iterative(A, b)
+
+
+#Метод простой итерации
+def simple_iteration(B, c, x0, eps=1e-5, max_iter=100):
+    x = x0.copy()
+    for k in range(max_iter):
+        x_new = B @ x + c
+
+        if np.linalg.norm(x_new - x) < eps:
+            return x_new, k + 1
+        x = x_new
+    return x, max_iter
+
+
+x0_zeros = np.zeros_like(c)
+
+x_simple, iter_simple = simple_iteration(B, c, x0_zeros)
+print(f"Метод простой итерации (сходимость за {iter_simple} итераций):")
+print(f"x = {x_simple}\n")
+
+
+#Метод Зейделя
+def seidel_method(A, b, x0, eps=1e-5, max_iter=100):
+    n = len(b)
+    x = x0.copy()
+    for k in range(max_iter):
+        x_old = x.copy()
+        for i in range(n):
+            sum1 = np.dot(A[i, :i], x[:i])
+            sum2 = np.dot(A[i, i + 1:], x_old[i + 1:])
+
+            x[i] = (b[i] - sum1 - sum2) / A[i, i]
+
+        if np.linalg.norm(x - x_old) < eps:
+            return x, k + 1
+
+    return x, max_iter
+
+
+x_seidel, iter_seidel = seidel_method(A, b, x0_zeros)
+print(f"Метод Зейделя (сходимость за {iter_seidel} итераций):")
+print(f"x = {x_seidel}\n")
